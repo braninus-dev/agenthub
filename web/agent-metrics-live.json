@@ -1,0 +1,27 @@
+{
+  "updated_at": "11:03:16",
+  "canary_status": "VALID",
+  "workbuddy": {
+    "pending_count": 197,
+    "done_count": 823,
+    "tier": "HY4 Free Window",
+    "base_points": 20000
+  },
+  "zcode": {
+    "daily_limit": 8000000,
+    "used_today": 700000,
+    "remaining": 7300000
+  },
+  "qoder": {
+    "points_total": 300,
+    "points_used": 11,
+    "points_remaining": 289
+  },
+  "bailian": {
+    "balance_cny": 49.98,
+    "total_cny": 50.0
+  },
+  "codex": {
+    "status": "Plus Active"
+  }
+}

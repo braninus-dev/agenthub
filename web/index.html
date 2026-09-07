@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+  body {
+    background: #04070c;
+    color: #e6edf3;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 12px;
+    height: 100vh;
+    overflow-y: auto;
+    position: relative;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    margin-bottom: 10px;
+    position: relative;
+    z-index: 10;
+  }
+  .header-title {
+    font-size: 13px;
+    font-weight: 800;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .core-pulse {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #00f2fe;
+    box-shadow: 0 0 10px #00f2fe;
+    animation: coreBreath 2s infinite ease-in-out;
+  }
+  @keyframes coreBreath { 0%, 100% { opacity: 0.7; transform: scale(1); } 50% { opacity: 1; transform: scale(1.4); } }
+
+  /* Tree Canvas Container */
+  .tree-container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    margin-top: 4px;
+    padding-bottom: 10px;
+  }
+
+  /* SVG Optical Synapse Overlay */
+  #synapse-svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Base Track Line */
+  .synapse-track {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.06);
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+
+  /* Dynamic Flowing Photon Beams */
+  .synapse-beam-active {
+    fill: none;
+    stroke: url(#photon-wb);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-dasharray: 12, 18;
+    animation: photonFlow 1.8s linear infinite;
+    filter: drop-shadow(0 0 6px #10b981);
+  }
+  .synapse-beam-support {
+    fill: none;
+    stroke: url(#photon-zc);
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-dasharray: 8, 16;
+    animation: photonFlow 3s linear infinite;
+    filter: drop-shadow(0 0 4px #3b82f6);
+  }
+  .synapse-beam-special {
+    fill: none;
+    stroke: url(#photon-bl);
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-dasharray: 8, 16;
+    animation: photonFlowReverse 3.5s linear infinite;
+    filter: drop-shadow(0 0 4px #ec4899);
+  }
+  .synapse-beam-standby {
+    fill: none;
+    stroke: rgba(245, 158, 11, 0.25);
+    stroke-width: 1.5;
+    stroke-dasharray: 4, 8;
+  }
+
+  @keyframes photonFlow {
+    from { stroke-dashoffset: 60; }
+    to { stroke-dashoffset: 0; }
+  }
+  @keyframes photonFlowReverse {
+    from { stroke-dashoffset: 0; }
+    to { stroke-dashoffset: 60; }
+  }
+
+  /* Nodes Layout */
+  .tier-row {
+    position: relative;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .tier-label-bar {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #8b949e;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .tier-pill {
+    font-size: 8px;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-weight: 700;
+  }
+  .pill-hq { background: rgba(0, 242, 254, 0.15); color: #38bdf8; border: 1px solid rgba(0, 242, 254, 0.3); }
+  .pill-core { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+  .pill-temp { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+
+  /* Node Cards */
+  .card {
+    background: rgba(13, 19, 28, 0.88);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+  }
+  .card:hover {
+    border-color: rgba(255, 255, 255, 0.3);
+    background: rgba(22, 31, 46, 0.95);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.5);
+  }
+
+  .card-top { display: flex; justify-content: space-between; align-items: center; }
+  .card-id { display: flex; align-items: center; gap: 8px; }
+
+  /* Morph SVGs */
+  .cell-glyph {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .cell-svg { width: 100%; height: 100%; }
+
+  .morph-neuron { animation: npulse 3s infinite ease-in-out; filter: drop-shadow(0 0 6px rgba(0,242,254,0.6)); }
+  @keyframes npulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+
+  .morph-myo { animation: myotwitch 4s infinite ease-in-out; filter: drop-shadow(0 0 6px rgba(245,158,11,0.6)); }
+  @keyframes myotwitch { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+
+  .morph-mito { animation: mitopump 2s infinite ease-in-out; filter: drop-shadow(0 0 7px rgba(16,185,129,0.7)); }
+  @keyframes mitopump { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+
+  .morph-coccus { animation: bdrift 3.5s infinite ease-in-out; filter: drop-shadow(0 0 5px rgba(59,130,246,0.5)); }
+  @keyframes bdrift { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+
+  .morph-lattice { animation: lres 4s infinite ease-in-out; filter: drop-shadow(0 0 5px rgba(139,92,246,0.5)); }
+  @keyframes lres { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(6deg); } }
+
+  .morph-eye { animation: oblink 3s infinite ease-in-out; filter: drop-shadow(0 0 6px rgba(236,72,153,0.5)); }
+  @keyframes oblink { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+
+  .agent-title { font-size: 11px; font-weight: 700; color: #f0f6fc; }
+  .agent-bio-tag { font-size: 9px; color: #8b949e; }
+
+  .status-tag {
+    font-size: 8px;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-weight: 600;
+  }
+  .tag-live { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+  .tag-idle { background: rgba(255, 255, 255, 0.05); color: #8b949e; border: 1px solid rgba(255, 255, 255, 0.1); }
+
+  .mission-strip {
+    font-size: 10px;
+    color: #8b949e;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 4px 6px;
+    border-radius: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .mission-glow { color: #58a6ff; font-weight: 500; }
+
+  .quota-strip {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    color: #8b949e;
+    padding-top: 3px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.05);
+  }
+  .quota-high { color: #38bdf8; font-weight: 700; font-family: monospace; }
+  .quota-free { color: #10b981; font-weight: 600; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+
+  /* Synapse Flow Legend */
+  .chain-legend {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    font-size: 9px;
+    color: #8b949e;
+    margin-top: 6px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .legend-item { display: flex; align-items: center; gap: 4px; }
+  .dot-green { width: 6px; height: 6px; border-radius: 50%; background: #10b981; box-shadow: 0 0 6px #10b981; }
+  .dot-blue { width: 6px; height: 6px; border-radius: 50%; background: #3b82f6; box-shadow: 0 0 6px #3b82f6; }
+  .dot-amber { width: 6px; height: 6px; border-radius: 50%; background: #f59e0b; }
+
+  /* Modal */
+  #detail-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(4, 7, 13, 0.88);
+    backdrop-filter: blur(8px);
+    z-index: 100;
+    padding: 20px;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+  .modal-box {
+    background: #141a24;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 310px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .modal-btn {
+    background: #238636;
+    color: #fff;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 11px;
+    cursor: pointer;
+    font-weight: 600;
+    align-self: flex-end;
+  }
+
+  /* 神经元冲击涟漪与粒子高光动画 */
+  @keyframes shockwavePulse {
+    0% { box-shadow: 0 0 0 0 rgba(0, 242, 254, 0.8), inset 0 0 15px rgba(0, 242, 254, 0.5); transform: scale(1); }
+    50% { box-shadow: 0 0 25px 8px rgba(0, 242, 254, 0.4), inset 0 0 25px rgba(0, 242, 254, 0.8); transform: scale(1.03); }
+    100% { box-shadow: 0 0 0 0 rgba(0, 242, 254, 0), inset 0 0 5px rgba(0, 242, 254, 0.2); transform: scale(1); }
+  }
+  @keyframes shockwaveGold {
+    0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.8), inset 0 0 15px rgba(245, 158, 11, 0.5); transform: scale(1); }
+    50% { box-shadow: 0 0 25px 8px rgba(245, 158, 11, 0.4), inset 0 0 25px rgba(245, 158, 11, 0.8); transform: scale(1.03); }
+    100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0), inset 0 0 5px rgba(245, 158, 11, 0.2); transform: scale(1); }
+  }
+  .impact-active {
+    animation: shockwavePulse 0.6s cubic-bezier(0.25, 1, 0.5, 1) !important;
+  }
+  .impact-gold {
+    animation: shockwaveGold 0.6s cubic-bezier(0.25, 1, 0.5, 1) !important;
+  }
+  .card.busy {
+    border-color: rgba(0, 242, 254, 0.9) !important;
+    box-shadow: 0 0 20px rgba(0, 242, 254, 0.3) !important;
+  }
+  .status-badge.live-pulse {
+    animation: coreBreath 1s infinite alternate !important;
+    background: #00f2fe !important;
+    color: #000 !important;
+    font-weight: bold !important;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-title">
+      <div class="core-pulse"></div>
+      <span>OPTICAL SYNAPSE CHAIN (任务传输光链)</span>
+    </div>
+    <div style="font-size: 9px; color: #8b949e;">光子流动即实际调度传输</div>
+  </div>
+
+  <!-- Interactive Tree & SVG Synapse Layer -->
+  <div class="tree-container" id="tree-root">
+
+    <!-- Optical Synapses Canvas -->
+    <svg id="synapse-svg">
+      <!-- 2D Light Particle Canvas Overlay -->
+      <canvas id="synapse-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:2;"></canvas>
+      <defs>
+        <!-- Gradients for flowing photon beams -->
+        <linearGradient id="photon-wb" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#00f2fe"/>
+          <stop offset="50%" stop-color="#34d399"/>
+          <stop offset="100%" stop-color="#10b981"/>
+        </linearGradient>
+        <linearGradient id="photon-zc" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#3b82f6"/>
+          <stop offset="100%" stop-color="#60a5fa"/>
+        </linearGradient>
+        <linearGradient id="photon-bl" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#ec4899"/>
+          <stop offset="100%" stop-color="#00f2fe"/>
+        </linearGradient>
+      </defs>
+
+      <!-- 1. Hermes -> WorkBuddy (藏经阁高频光子传输流：正在全速流动) -->
+      <path id="path-hm-wb" class="synapse-track" d="M 180 75 C 180 100, 230 100, 230 135" />
+      <path class="synapse-beam-active" d="M 180 75 C 180 100, 230 100, 230 135" />
+
+      <!-- 2. Hermes -> Codex (TDD 代码专线：金光待命通道) -->
+      <path id="path-hm-cx" class="synapse-track" d="M 140 75 C 140 100, 80 100, 80 135" />
+      <path class="synapse-beam-standby" d="M 140 75 C 140 100, 80 100, 80 135" />
+
+      <!-- 3. Hermes -> ZCode (每日免费代码车间传输流) -->
+      <path id="path-hm-zc" class="synapse-track" d="M 140 75 C 140 160, 50 160, 50 220" />
+      <path class="synapse-beam-support" d="M 140 75 C 140 160, 50 160, 50 220" />
+
+      <!-- 4. WorkBuddy -> 阿里百炼 (生僻字/长古籍跨卷外援传输流) -->
+      <path id="path-wb-bl" class="synapse-track" d="M 230 185 C 230 205, 260 205, 260 220" />
+      <path class="synapse-beam-special" d="M 230 185 C 230 205, 260 205, 260 220" />
+    </svg>
+
+    <!-- LEVEL 1: 司令部 (Hermes Prime) -->
+    <div class="tier-row">
+      <div class="tier-label-bar">
+        <span>LEVEL 1: 神经中枢母核 (发射端)</span>
+        <span class="tier-pill pill-hq">SYNAPSE SOMA</span>
+      </div>
+      <div class="card" id="card-hm" onclick="showDetail("Hermes Prime", "大脑皮层锥体神经元", "作为光链源头发射端，负责解构你的原始输入，将文献长跑任务持续投递给 WorkBuddy，将高危逻辑留给 Codex。", "永久中枢 (VALID)", "正在向 WorkBuddy 发送任务包")">
+        <div class="card-top">
+          <div class="card-id">
+            <div class="cell-glyph morph-neuron">
+              <svg class="cell-svg" viewBox="0 0 100 100">
+                <path d="M50 20 L50 2 M50 20 L35 8 M50 20 L65 8 M80 50 L98 50 M20 50 L2 50 M50 80 L50 98" stroke="#00f2fe" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+                <circle cx="50" cy="50" r="26" fill="#042f2e" stroke="#00f2fe" stroke-width="2"/>
+                <circle cx="50" cy="50" r="12" fill="#00f2fe"/>
+                <circle cx="46" cy="46" r="3" fill="#fff"/>
+              </svg>
+            </div>
+            <div>
+              <div class="agent-title">Hermes Prime (最高总脑)</div>
+              <div class="agent-bio-tag">大脑皮层神经元 · 光链调度发端</div>
+            </div>
+          </div>
+          <div class="status-tag tag-live">● RUNNING</div>
+        </div>
+        <div class="mission-strip">
+          传输流: <span class="mission-glow">▶ [光链激活] 向 WorkBuddy 持续分发古籍批次</span>
+        </div>
+        <div class="quota-strip">
+          <span>防漂移基线: VALID</span>
+          <span class="quota-free">中枢调度守门</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEVEL 2: 正规军团 (Codex & WorkBuddy) -->
+    <div class="tier-row">
+      <div class="tier-label-bar">
+        <span>LEVEL 2: 嫡系承接端 (主力执行)</span>
+        <span class="tier-pill pill-core">PERMANENT TIER</span>
+      </div>
+      <div class="grid-2">
+        <!-- Codex -->
+        <div class="card" id="card-cx" onclick="showDetail("Codex CLI", "肌纤维甲装刺细胞", "高危代码突击通道。与总脑保持黄金光链待命连接，准备承接核心算法与状态机实现。", "ChatGPT Plus 专属", "待命承接")">
+          <div class="card-top">
+            <div class="card-id">
+              <div class="cell-glyph morph-myo">
+                <svg class="cell-svg" viewBox="0 0 100 100">
+                  <polygon points="50,10 85,32 85,68 50,90 15,68 15,32" fill="#78350f" stroke="#f59e0b" stroke-width="2"/>
+                  <line x1="25" y1="50" x2="75" y2="50" stroke="#fbbf24" stroke-width="3"/>
+                  <circle cx="50" cy="50" r="6" fill="#fff"/>
+                </svg>
+              </div>
+              <div>
+                <div class="agent-title">Codex CLI</div>
+                <div class="agent-bio-tag">肌甲刺细胞</div>
+              </div>
+            </div>
+            <div class="status-tag tag-idle">○ STANDBY</div>
+          </div>
+          <div class="mission-strip">
+            <span>待命: 严格 TDD 通道</span>
+          </div>
+          <div class="quota-strip">
+            <span>Plus 独享</span>
+            <span class="quota-free">大将待命</span>
+          </div>
+        </div>
+
+        <!-- WorkBuddy -->
+        <div class="card" id="card-wb" onclick="showDetail("WorkBuddy", "线粒体能量吞噬虫", "当前最活跃的承接节点！接收来自 Hermes 的古籍待办任务，全速吞噬抽取，并将生僻字需求跨链投给百炼。", "HY4 免费窗口期", "正在全速吞噬 198 篇待办")">
+          <div class="card-top">
+            <div class="card-id">
+              <div class="cell-glyph morph-mito">
+                <svg class="cell-svg" viewBox="0 0 100 100">
+                  <ellipse cx="50" cy="50" rx="38" ry="24" fill="#064e3b" stroke="#10b981" stroke-width="2"/>
+                  <path d="M25 50 Q35 38 45 50 T65 50 T75 50" fill="none" stroke="#6ee7b7" stroke-width="3"/>
+                  <circle cx="35" cy="46" r="3" fill="#fff"/>
+                </svg>
+              </div>
+              <div>
+                <div class="agent-title">WorkBuddy</div>
+                <div class="agent-bio-tag">线粒体吞噬虫</div>
+              </div>
+            </div>
+            <div class="status-tag tag-live">● RUNNING</div>
+          </div>
+          <div class="mission-strip">
+            接收流: <span class="mission-glow">◀ [吸纳任务] 消化藏经阁 198 待办</span>
+          </div>
+          <div class="quota-strip">
+            <span>已耗 1.42M</span>
+            <span class="quota-free">HY4 无限免</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEVEL 3: 临时用工与外部支持 -->
+    <div class="tier-row">
+      <div class="tier-label-bar">
+        <span>LEVEL 3: 边缘与特种支持节点</span>
+        <span class="tier-pill pill-temp">UTILITY & SENSORY</span>
+      </div>
+      <div class="grid-3">
+        <!-- ZCode -->
+        <div class="card" id="card-zc" onclick="showDetail("ZCode (GLM5.3)", "极速分裂球菌", "通过蓝色支持光链与中枢相连，准备随时接收常规批处理或单测生成任务。", "余 730.0W (已用 70W) / 800W", "今日已耗 18K")">
+          <div class="card-top">
+            <div class="card-id">
+              <div class="cell-glyph morph-coccus">
+                <svg class="cell-svg" viewBox="0 0 100 100">
+                  <circle cx="40" cy="42" r="16" fill="#1d4ed8" stroke="#3b82f6" stroke-width="2"/>
+                  <circle cx="62" cy="58" r="14" fill="#2563eb" stroke="#60a5fa" stroke-width="2"/>
+                  <circle cx="38" cy="40" r="4" fill="#fff"/>
+                </svg>
+              </div>
+              <div>
+                <div class="agent-title" style="font-size:10px;">ZCode</div>
+                <div class="agent-bio-tag" style="font-size:8px;">分裂球菌</div>
+              </div>
+            </div>
+          </div>
+          <div class="quota-strip">
+            <span id="zc-stat">余 730.0W (已用 70W)</span>
+            <span class="quota-high">免</span>
+          </div>
+        </div>
+
+        <!-- Qoder CN -->
+        <div class="card" id="card-qd" onclick="showDetail("Qoder CN", "几丁质晶格重组胞", "全库重构特遣节点，300 积分备用。", "余 289 / 300 积分", "今日已耗 11 分")">
+          <div class="card-top">
+            <div class="card-id">
+              <div class="cell-glyph morph-lattice">
+                <svg class="cell-svg" viewBox="0 0 100 100">
+                  <polygon points="50,15 80,32 80,68 50,85 20,68 20,32" fill="#581c87" stroke="#a855f7" stroke-width="2"/>
+                  <circle cx="50" cy="50" r="5" fill="#f3e8ff"/>
+                </svg>
+              </div>
+              <div>
+                <div class="agent-title" style="font-size:10px;">Qoder</div>
+                <div class="agent-bio-tag" style="font-size:8px;">晶格重组胞</div>
+              </div>
+            </div>
+          </div>
+          <div class="quota-strip">
+            <span id="qd-stat">余 289 分 (已用 11分)</span>
+            <span class="quota-high">免</span>
+          </div>
+        </div>
+
+        <!-- 阿里百炼 -->
+        <div class="card" id="card-bl" onclick="showDetail("阿里百炼 API", "树突感光复眼细胞", "通过粉色生僻字光学通道接收 WorkBuddy 回传的难字，进行超长文本与视觉解析。", "余 ￥49.98 / 50元", "专供长文本/视觉")">
+          <div class="card-top">
+            <div class="card-id">
+              <div class="cell-glyph morph-eye">
+                <svg class="cell-svg" viewBox="0 0 100 100">
+                  <path d="M10 50 Q50 20 90 50 Q50 80 10 50 Z" fill="#831843" stroke="#ec4899" stroke-width="2"/>
+                  <circle cx="50" cy="50" r="12" fill="#db2777"/>
+                  <circle cx="48" cy="48" r="3" fill="#fff"/>
+                </svg>
+              </div>
+              <div>
+                <div class="agent-title" style="font-size:10px;">百炼 API</div>
+                <div class="agent-bio-tag" style="font-size:8px;">感光复眼</div>
+              </div>
+            </div>
+          </div>
+          <div class="quota-strip">
+            <span>余 ￥49.98</span>
+            <span class="quota-high">付</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Legend -->
+  <div class="chain-legend">
+    <div class="legend-item"><div class="dot-green"></div><span>主长跑光链 (Hermes ➔ WorkBuddy)</span></div>
+    <div class="legend-item"><div class="dot-blue"></div><span>代码车间流</span></div>
+    <div class="legend-item"><div class="dot-amber"></div><span>TDD 待命通道</span></div>
+  </div>
+
+  <!-- Detail Modal -->
+  <div id="detail-modal" onclick="closeDetail()">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 id="modal-title" style="font-size:13px; font-weight:800; color:#fff;">Agent Details</h3>
+        <span style="font-size:10px; color:#8b949e; cursor:pointer;" onclick="closeDetail()">✕ 关闭</span>
+      </div>
+      <div id="modal-role" style="font-size:11px; color:#38bdf8; font-weight:700;">Role Tag</div>
+      <p id="modal-desc" style="font-size:10px; color:#c9d1d9; line-height:1.5;">Description text...</p>
+      <div style="background:rgba(0,0,0,0.3); padding:6px 8px; border-radius:6px; font-size:9px; display:flex; justify-content:space-between;">
+        <span style="color:#8b949e;">额度与属性:</span>
+        <span id="modal-quota" style="color:#34d399; font-weight:700;">Quota</span>
+      </div>
+      <div style="background:rgba(0,0,0,0.3); padding:6px 8px; border-radius:6px; font-size:9px; display:flex; justify-content:space-between;">
+        <span style="color:#8b949e;">当前光链传输:</span>
+        <span id="modal-extra" style="color:#58a6ff; font-weight:600;">Extra</span>
+      </div>
+      <button class="modal-btn" onclick="closeDetail()">确定并返回</button>
+    </div>
+  </div>
+
+  <script>
+    function showDetail(name, role, desc, quota, extra) {
+      document.getElementById("modal-title").innerText = name;
+      document.getElementById("modal-role").innerText = role;
+      document.getElementById("modal-desc").innerText = desc;
+      document.getElementById("modal-quota").innerText = quota;
+      document.getElementById("modal-extra").innerText = extra;
+      const modal = document.getElementById("detail-modal");
+      modal.style.display = "flex";
+    }
+    function closeDetail() {
+      document.getElementById("detail-modal").style.display = "none";
+    }
+
+    // Dynamic Synapse Path Connection Alignment
+    function updateSynapsePaths() {
+      try {
+        const root = document.getElementById("tree-root").getBoundingClientRect();
+        const hm = document.getElementById("card-hm").getBoundingClientRect();
+        const wb = document.getElementById("card-wb").getBoundingClientRect();
+        const cx = document.getElementById("card-cx").getBoundingClientRect();
+        const zc = document.getElementById("card-zc").getBoundingClientRect();
+        const bl = document.getElementById("card-bl").getBoundingClientRect();
+
+        const hmX = hm.left + hm.width / 2 - root.left;
+        const hmY = hm.bottom - root.top;
+
+        const wbX = wb.left + wb.width / 2 - root.left;
+        const wbY = wb.top - root.top;
+
+        const cxX = cx.left + cx.width / 2 - root.left;
+        const cxY = cx.top - root.top;
+
+        const zcX = zc.left + zc.width / 2 - root.left;
+        const zcY = zc.top - root.top;
+
+        const blX = bl.left + bl.width / 2 - root.left;
+        const blY = bl.top - root.top;
+
+        // Path Hermes -> WorkBuddy
+        const dWb = `M ${hmX + 40} ${hmY} C ${hmX + 40} ${(hmY + wbY)/2}, ${wbX} ${(hmY + wbY)/2}, ${wbX} ${wbY}`;
+        document.getElementById("path-hm-wb").setAttribute("d", dWb);
+        document.querySelector(".synapse-beam-active").setAttribute("d", dWb);
+
+        // Path Hermes -> Codex
+        const dCx = `M ${hmX - 40} ${hmY} C ${hmX - 40} ${(hmY + cxY)/2}, ${cxX} ${(hmY + cxY)/2}, ${cxX} ${cxY}`;
+        document.getElementById("path-hm-cx").setAttribute("d", dCx);
+        document.querySelector(".synapse-beam-standby").setAttribute("d", dCx);
+
+        // Path Hermes -> ZCode
+        const dZc = `M ${hmX - 60} ${hmY} C ${hmX - 60} ${(hmY + zcY)/2}, ${zcX} ${(hmY + zcY)/2}, ${zcX} ${zcY}`;
+        document.getElementById("path-hm-zc").setAttribute("d", dZc);
+        document.querySelector(".synapse-beam-support").setAttribute("d", dZc);
+
+        // Path WorkBuddy -> Bailian (Specialist optical link)
+        const wbBottomY = wb.bottom - root.top;
+        const dBl = `M ${wbX} ${wbBottomY} C ${wbX} ${(wbBottomY + blY)/2}, ${blX} ${(wbBottomY + blY)/2}, ${blX} ${blY}`;
+        document.getElementById("path-wb-bl").setAttribute("d", dBl);
+        document.querySelector(".synapse-beam-special").setAttribute("d", dBl);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    window.addEventListener("load", updateSynapsePaths);
+    window.addEventListener("resize", updateSynapsePaths);
+    setTimeout(updateSynapsePaths, 200);
+
+    // ==========================================
+    // 神经元粒子动力学引擎 (Particle Synapse Engine 2.0)
+    // ==========================================
+    const canvas = document.getElementById("synapse-canvas");
+    let ctx = null;
+    if (canvas) {
+      ctx = canvas.getContext("2d");
+      function resizeCanvas() {
+        const board = document.querySelector(".biosphere-board");
+        if (board && canvas) {
+          canvas.width = board.clientWidth;
+          canvas.height = board.clientHeight;
+        }
+      }
+      resizeCanvas();
+      window.addEventListener("resize", resizeCanvas);
+    }
+
+    // 活跃粒子池
+    const particles = [];
+
+    class SynapsePhoton {
+      constructor(pathElement, color, speed, size, targetCardId) {
+        this.path = pathElement;
+        this.totalLength = pathElement ? pathElement.getTotalLength() : 100;
+        this.progress = 0;
+        this.speed = speed || (0.015 + Math.random() * 0.01);
+        this.color = color || "#00f2fe";
+        this.size = size || 3;
+        this.targetCardId = targetCardId;
+        this.history = []; // 拖尾尾焰轨迹
+      }
+
+      update() {
+        this.progress += this.speed;
+        if (this.path && this.totalLength > 0) {
+          const pt = this.path.getPointAtLength(Math.min(this.totalLength, this.progress * this.totalLength));
+          this.history.push({ x: pt.x, y: pt.y });
+          if (this.history.length > 6) {
+            this.history.shift();
+          }
+        }
+        if (this.progress >= 1) {
+          // 到达受体细胞：激起冲击涟漪 (Impact Shockwave)
+          triggerImpact(this.targetCardId, this.color);
+          return false; // 生命周期结束
+        }
+        return true;
+      }
+
+      draw(c) {
+        if (!c || this.history.length === 0) return;
+        
+        // 绘制高光拖尾
+        for (let i = 0; i < this.history.length - 1; i++) {
+          const p1 = this.history[i];
+          const p2 = this.history[i + 1];
+          const alpha = (i + 1) / this.history.length * 0.7;
+          c.beginPath();
+          c.moveTo(p1.x, p1.y);
+          c.lineTo(p2.x, p2.y);
+          c.strokeStyle = this.color;
+          c.globalAlpha = alpha;
+          c.lineWidth = this.size * (i / this.history.length);
+          c.lineCap = "round";
+          c.stroke();
+        }
+
+        // 绘制光子核心
+        const head = this.history[this.history.length - 1];
+        c.globalAlpha = 1;
+        c.beginPath();
+        c.arc(head.x, head.y, this.size, 0, Math.PI * 2);
+        c.fillStyle = "#ffffff";
+        c.shadowColor = this.color;
+        c.shadowBlur = 10;
+        c.fill();
+        c.shadowBlur = 0; // 重置
+      }
+    }
+
+    // 触发受体细胞震颤与吸收波纹
+    function triggerImpact(targetCardId, color) {
+      if (!targetCardId) return;
+      const card = document.getElementById(targetCardId);
+      if (card) {
+        const impactClass = color.includes("245") || color.includes("f5") ? "impact-gold" : "impact-active";
+        card.classList.remove("impact-active", "impact-gold");
+        void card.offsetWidth; // 触发 reflow 重置动画
+        card.classList.add(impactClass);
+        setTimeout(() => {
+          card.classList.remove("impact-active", "impact-gold");
+        }, 600);
+      }
+    }
+
+    // 定时发射光子波包（根据业务动态发射）
+    function spawnPhotons() {
+      const pWb = document.getElementById("path-hm-wb");
+      const pZc = document.getElementById("path-hm-zc");
+      const pCx = document.getElementById("path-hm-cx");
+      const pBl = document.getElementById("path-wb-bl");
+
+      // 1. WorkBuddy 藏经阁高频流 (青绿高能光子)
+      if (pWb && Math.random() < 0.7) {
+        particles.push(new SynapsePhoton(pWb, "#10b981", 0.02 + Math.random() * 0.015, 3.5, "card-wb"));
+      }
+      // 2. ZCode 800W 免费代码车间流 (蔚蓝光子)
+      if (pZc && Math.random() < 0.6) {
+        particles.push(new SynapsePhoton(pZc, "#38bdf8", 0.018 + Math.random() * 0.012, 3, "card-zc"));
+      }
+      // 3. Codex 金光待命流 (低频单发光子)
+      if (pCx && Math.random() < 0.25) {
+        particles.push(new SynapsePhoton(pCx, "#f59e0b", 0.015, 2.5, "card-cx"));
+      }
+      // 4. 百炼跨卷外援流 (粉紫光子)
+      if (pBl && Math.random() < 0.3) {
+        particles.push(new SynapsePhoton(pBl, "#ec4899", 0.02, 2.8, "card-bl"));
+      }
+    }
+
+    // Canvas 动画帧主循环
+    function renderLoop() {
+      if (ctx && canvas) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const alive = particles[i].update();
+          if (alive) {
+            particles[i].draw(ctx);
+          } else {
+            particles.splice(i, 1);
+          }
+        }
+      }
+      requestAnimationFrame(renderLoop);
+    }
+    requestAnimationFrame(renderLoop);
+    setInterval(spawnPhotons, 400);
+
+    // ==========================================
+    // 毫秒级真实后台指标同步机制 (Fast Event & Metric Bridge)
+    // ==========================================
+    let lastDoneCount = 0;
+    async function syncRealMetrics() {
+      try {
+        // [Real-time Event Bus Hook]
+        try {
+          const evResp = await fetch("agent-events.json?t=" + Date.now());
+          if (evResp.ok) {
+            const ev = await evResp.json();
+            if (window.lastHandledEvId !== ev.event_id) {
+              window.lastHandledEvId = ev.event_id;
+              if (ev.from_agent && ev.to_agent && window.beamEngine) {
+                window.beamEngine.fire(ev.from_agent, ev.to_agent, 5);
+              }
+            }
+          }
+        } catch (evErr) {}
+
+        const resp = await fetch("agent-metrics-live.json?t=" + Date.now());
+        if (resp.ok) {
+          const m = await resp.json();
+          
+          // 1. WorkBuddy 状态与数字平滑跳变
+          if (m.workbuddy) {
+            const total = m.workbuddy.done_count + m.workbuddy.pending_count;
+            const pct = total > 0 ? Math.min(100, Math.round((m.workbuddy.done_count / total) * 100)) : 0;
+            const bar = document.getElementById("wb-bar");
+            const stat = document.getElementById("wb-stat");
+            if (bar) bar.style.width = pct + "%";
+            if (stat) stat.textContent = `Done ${m.workbuddy.done_count} / Pending ${m.workbuddy.pending_count}`;
+            
+            // 实时感知新完成事件：若数字增长，立即爆发光束冲击
+            if (lastDoneCount > 0 && m.workbuddy.done_count > lastDoneCount) {
+              const pWb = document.getElementById("path-hm-wb");
+              for (let k = 0; k < 4; k++) {
+                particles.push(new SynapsePhoton(pWb, "#00f2fe", 0.035, 4.5, "card-wb"));
+              }
+            }
+            lastDoneCount = m.workbuddy.done_count;
+          }
+
+          // 2. ZCode 800W 额度与状态实时更新
+          if (m.zcode && document.getElementById("zc-stat")) {
+            const remW = (m.zcode.remaining / 10000).toFixed(1) + "W";
+            const usedW = (m.zcode.used_today / 10000).toFixed(1) + "W";
+            document.getElementById("zc-stat").textContent = `余 ${remW} (已用 ${usedW})`;
+            const zcCard = document.getElementById("card-zc");
+            if (zcCard) {
+              if (m.zcode.used_today > 0) {
+                zcCard.classList.add("busy");
+              } else {
+                zcCard.classList.remove("busy");
+              }
+            }
+          }
+
+          // 3. Qoder 积分监控
+          if (m.qoder && document.getElementById("qd-stat")) {
+            document.getElementById("qd-stat").textContent = `余 ${m.qoder.points_remaining} 分 (已用 ${m.qoder.points_used}分)`;
+          }
+
+          // 4. 百炼余额
+          if (m.bailian && document.getElementById("bl-stat")) {
+            document.getElementById("bl-stat").textContent = `Bal: ￥${m.bailian.balance_cny.toFixed(2)}`;
+          }
+
+          // 5. 更新状态标徽
+          const badge = document.querySelector(".status-badge");
+          if (badge) {
+            badge.textContent = "SYNAPSE MESH 2.0 • LIVE " + (m.updated_at || "");
+          }
+        }
+      } catch (err) {
+        // 静默优雅降级
+      }
+    }
+
+    // 缩短轮询至 1.5 秒高速感知，兼具超轻量零负担
+    setInterval(syncRealMetrics, 1500);
+    syncRealMetrics();
+
+</script>
+</body>
+</html>
