@@ -4,8 +4,9 @@ import time
 import os
 import sys
 
-EVENTS_FILE = os.path.expanduser("~/.hermes/agent-events.json")
-METRICS_FILE = os.path.expanduser("~/.hermes/agent-metrics-live.json")
+AGENTHUB_HOME = os.path.expanduser(os.environ.get("AGENTHUB_HOME", "~/.agenthub"))
+EVENTS_FILE = os.path.join(AGENTHUB_HOME, "agent-events.json")
+METRICS_FILE = os.path.join(AGENTHUB_HOME, "agent-metrics-live.json")
 
 def emit_event(event_type, from_agent, to_agent, task_name, status="RUNNING", detail=""):
     event = {
@@ -18,8 +19,11 @@ def emit_event(event_type, from_agent, to_agent, task_name, status="RUNNING", de
         "timestamp": time.time(),
         "detail": detail
     }
-    with open(EVENTS_FILE, "w") as f:
+    os.makedirs(AGENTHUB_HOME, exist_ok=True)
+    temp_file = f"{EVENTS_FILE}.tmp"
+    with open(temp_file, "w", encoding="utf-8") as f:
         json.dump(event, f, indent=2)
+    os.replace(temp_file, EVENTS_FILE)
     print(f"📡 [Event Emitted] {event_type}: {from_agent} ──▶ {to_agent} ({task_name})")
 
 if __name__ == "__main__":

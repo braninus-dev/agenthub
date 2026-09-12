@@ -1,0 +1,11 @@
+# Local AgentHub runtime state
+.agenthub/
+
+# Local dashboard/event streams; use the tracked example file instead.
+web/agent-events.json
+web/agent-metrics-live.json
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/

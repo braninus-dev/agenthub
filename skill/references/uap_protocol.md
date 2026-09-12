@@ -1,7 +1,10 @@
 # Universal Agent Protocol (UAP) Specification
 
-## 1. Event Bus Schema (~/.hermes/agent-events.json)
-Whenever an orchestrator or worker changes state, emit an atomic JSON record:
+## 1. Event Bus Schema (`$AGENTHUB_HOME/agent-events.json`)
+Whenever an orchestrator or worker changes state, emit an event record. The
+default `AGENTHUB_HOME` is `~/.agenthub`; set the environment variable to use a
+project-specific directory. Writers should publish a complete JSON document via
+an atomic replace so readers never observe a partial event.
 ```json
 {
   "event_id": "evt_1788743900",

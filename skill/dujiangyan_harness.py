@@ -14,16 +14,16 @@ import os
 import sys
 import json
 import time
-import subprocess
+import tempfile
 from pathlib import Path
 from typing import Dict, Any, Optional
 
-HERMES_ROOT = Path("/Users/brant/.hermes")
-EVENT_BUS = HERMES_ROOT / "agent-events.json"
+DEFAULT_ROOT = Path(os.environ.get("AGENTHUB_HOME", "~/.agenthub")).expanduser()
 
 class DujiangyanHarness:
-    def __init__(self):
-        self.root = HERMES_ROOT
+    def __init__(self, root: Optional[Path] = None):
+        self.root = Path(root).expanduser() if root else DEFAULT_ROOT
+        self.event_bus = self.root / "agent-events.json"
         self.ensure_dirs()
 
     def ensure_dirs(self):
@@ -118,12 +118,13 @@ class DujiangyanHarness:
     # -------------------------------------------------------------
     # 4. 岁修工程：深淘滩、低作堰自治维护
     # -------------------------------------------------------------
-    def suixiu_dredge(self, days_threshold: int = 30) -> Dict[str, int]:
+    def suixiu_dredge(self, days_threshold: int = 30, apply: bool = False) -> Dict[str, int]:
         """
         岁修深淘滩：
-        - 清理 7 天以前的临时中间输出
-        - 归档 30 天未被调用的休眠技能
+        - 默认 dry-run，仅报告可清理的过期临时日志
+        - 仅在 apply=True 时删除目标文件
         """
+        candidates = 0
         cleaned_logs = 0
         now = time.time()
         
@@ -132,14 +133,21 @@ class DujiangyanHarness:
         if log_dir.exists():
             for f in log_dir.glob("*.log.*"):
                 if now - f.stat().st_mtime > 7 * 86400:
+                    candidates += 1
+                    if not apply:
+                        continue
                     try:
                         f.unlink()
                         cleaned_logs += 1
                     except Exception:
                         pass
                         
-        self._emit_event("SUIXIU_DREDGED", f"岁修深淘滩完成：淘洗过期临时数据 {cleaned_logs} 项")
-        return {"cleaned_logs": cleaned_logs}
+        mode = "applied" if apply else "dry-run"
+        self._emit_event(
+            "SUIXIU_DREDGED",
+            f"岁修深淘滩完成（{mode}）：候选 {candidates} 项，已删除 {cleaned_logs} 项",
+        )
+        return {"candidates": candidates, "cleaned_logs": cleaned_logs, "applied": apply}
 
     # 内部事件发射
     def _emit_event(self, event_type: str, message: str):
@@ -149,31 +157,41 @@ class DujiangyanHarness:
             "message": message
         }
         try:
-            with open(EVENT_BUS, "a", encoding="utf-8") as f:
+            with open(self.event_bus, "a", encoding="utf-8") as f:
                 f.write(json.dumps(event, ensure_ascii=False) + "\n")
         except Exception:
             pass
+
+def run_smoke_test() -> int:
+    """Exercise all components without reading or deleting user data."""
+    with tempfile.TemporaryDirectory(prefix="agenthub-smoke-") as tmp:
+        root = Path(tmp)
+        artifact = root / "demo-artifact.txt"
+        artifact.write_text("AgentHub smoke-test artifact\n", encoding="utf-8")
+        harness = DujiangyanHarness(root=root)
+        print("🧪 Testing Dujiangyan Harness Engine Components...")
+        worker = harness.fishmouth_route("document cleanup", "chunk and clean input", char_len=50000)
+        print(f"1. Fishmouth Routing ──▶ Target: {worker}")
+        packet = harness.baopingkou_choke("SUCCESS", str(artifact), "Process finished with exit code 0")
+        print(f"2. Baopingkou Choke ──▶ Laminar Packet: {packet}")
+        passed = harness.feishayan_verify(str(artifact), exit_code=0)
+        print(f"3. Feishayan Anchor ──▶ Status: {'PASSED' if passed else 'BLOCKED'}")
+        result = harness.suixiu_dredge()
+        print(f"4. Sui Xiu Dredging ──▶ Result: {result}")
+        if not passed:
+            return 1
+    print("✅ All 4 Harness components verified without touching user data.")
+    return 0
+
 
 if __name__ == "__main__":
     harness = DujiangyanHarness()
     if len(sys.argv) > 1:
         cmd = sys.argv[1]
         if cmd == "test":
-            print("🧪 正在测试都江堰束导引擎四大构件...")
-            # 1. 鱼嘴测试
-            w = harness.fishmouth_route("古籍分词与清洗", "对易藏343本文档进行chunking分块", char_len=50000)
-            print(f"1. 鱼嘴分流 ──▶ 结果: {w}")
-            # 2. 宝瓶口测试
-            pkt = harness.baopingkou_choke("SUCCESS", "/Users/brant/zangjingge/daizhige_index.db", "Process finished with exit code 0\nAll 2064 books indexed.")
-            print(f"2. 宝瓶口层流切片 ──▶ 结果: {pkt}")
-            # 3. 飞沙堰测试
-            passed = harness.feishayan_verify("/Users/brant/zangjingge/daizhige_index.db", exit_code=0)
-            print(f"3. 飞沙堰现实锚点 ──▶ 结果: {'放行' if passed else '拦截'}")
-            # 4. 岁修测试
-            res = harness.suixiu_dredge()
-            print(f"4. 岁修深淘滩 ──▶ 结果: {res}")
-            print("✅ 都江堰束导引擎四大构件全部通过测试！")
+            raise SystemExit(run_smoke_test())
         elif cmd == "dredge":
-            harness.suixiu_dredge()
+            apply = "--apply" in sys.argv[2:]
+            print(harness.suixiu_dredge(apply=apply))
     else:
-        print("用法: dujiangyan_harness.py [test|dredge]")
+        print("Usage: dujiangyan_harness.py [test|dredge [--apply]]")

@@ -1,0 +1,27 @@
+{
+  "updated_at": "demo",
+  "canary_status": "VALID",
+  "workbuddy": {
+    "pending_count": 3,
+    "done_count": 12,
+    "tier": "Demo",
+    "base_points": 0
+  },
+  "zcode": {
+    "daily_limit": 100,
+    "used_today": 24,
+    "remaining": 76
+  },
+  "qoder": {
+    "points_total": 100,
+    "points_used": 8,
+    "points_remaining": 92
+  },
+  "bailian": {
+    "balance_cny": 0,
+    "total_cny": 0
+  },
+  "codex": {
+    "status": "Demo"
+  }
+}

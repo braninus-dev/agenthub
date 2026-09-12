@@ -1,5 +1,5 @@
 # AgentHub: Dujiangyan Harness Engineering Engine 🌊
-> **The World's First Bio-Inspired Multi-Agent Harness Architecture Rooted in 2,200-Year-Old Ancient Hydraulic Engineering.**
+> A bio-inspired, file-based harness for routing multi-agent work, constraining results, and checking evidence.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
@@ -17,7 +17,7 @@ Modern LLMs are just like the unconstrained Minjiang River: **infinite kinetic e
 
 Most multi-agent frameworks today are built like brittle dams (rigid DAGs, brittle state machines). When the model hallucinates, the dam bursts.
 
-**AgentHub implements the 4 Pillars of Dujiangyan Harness Engineering:**
+**AgentHub provides four composable harness patterns:**
 
 ```
                   [Raw LLM Kinetic Energy: Unconstrained Stream]
@@ -50,10 +50,10 @@ Most multi-agent frameworks today are built like brittle dams (rigid DAGs, britt
 
 ## 🚀 Key Features
 
-- **⚡ Zero-Crash Architecture**: Background watchdogs automatically sever orphaned or runaway processes before host memory is exhausted.
-- **🛡️ Anti-Context Rot**: The **Baopingkou Choke** compresses noisy subagent execution outputs into clean, structured reality packets.
-- **💎 Reality Anchors**: Subagents cannot self-report completion without verifiable physical artifacts on disk and clean compilation (`Exit 0`).
-- **✨ Biomorphic HUD 2.0**: Real-time 2D Canvas rendering Bezier particle light trails connecting the orchestrator and worker agents with shockwave impacts.
+- **Task routing**: a transparent keyword-based example router for cheap, high-throughput work versus higher-judgment review.
+- **Result shaping**: the **Baopingkou Choke** reduces worker output to a structured `{status, artifact, summary}` packet.
+- **Evidence checks**: the **Feishayan Anchor** requires an expected artifact to exist and be non-empty before reporting success.
+- **Event telemetry**: a file-based UAP event schema that a dashboard or external worker can consume.
 
 ---
 
@@ -64,7 +64,7 @@ Most multi-agent frameworks today are built like brittle dams (rigid DAGs, britt
 git clone https://github.com/your-username/agenthub.git
 cd agenthub
 
-# Test the Dujiangyan Harness Engine
+# Run the isolated smoke test (uses a temporary directory and never deletes user data)
 python3 skill/dujiangyan_harness.py test
 ```
 
@@ -75,8 +75,28 @@ python3 skill/dujiangyan_harness.py test
 2. Baopingkou Choke  ──▶ Laminar Packet: {'status': 'SUCCESS', 'artifact': '...', 'summary': '...'}
 3. Feishayan Anchor  ──▶ Status: PASSED (Physical file exists > 0 bytes)
 4. Sui Xiu Dredging  ──▶ Cleaned 4 stale items
-✅ All 4 Harness components verified!
+✅ All 4 Harness components verified without touching user data.
 ```
+
+### Runtime directory and safe maintenance
+
+AgentHub writes local runtime state to `~/.agenthub` by default. Set
+`AGENTHUB_HOME` to isolate a project or CI run:
+
+```bash
+export AGENTHUB_HOME="$PWD/.agenthub"
+python3 skill/scripts/dispatch_event.py TASK_DISPATCH hermes worker demo-task
+```
+
+`dredge` is dry-run by default. Deletion requires an explicit `--apply`:
+
+```bash
+python3 skill/dujiangyan_harness.py dredge
+python3 skill/dujiangyan_harness.py dredge --apply
+```
+
+The bundled dashboard metrics are synthetic demo data. Runtime files and local
+event streams are intentionally excluded from version control.
 
 ---
 

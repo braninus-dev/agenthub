@@ -799,7 +799,10 @@
           }
         } catch (evErr) {}
 
-        const resp = await fetch("agent-metrics-live.json?t=" + Date.now());
+        let resp = await fetch("agent-metrics-live.json?t=" + Date.now());
+        if (!resp.ok) {
+          resp = await fetch("agent-metrics.example.json");
+        }
         if (resp.ok) {
           const m = await resp.json();
           
