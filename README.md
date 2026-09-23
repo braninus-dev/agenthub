@@ -19,6 +19,40 @@ Most multi-agent frameworks today are built like brittle dams (rigid DAGs, britt
 
 **AgentHub provides four composable harness patterns:**
 
+```mermaid
+flowchart TD
+    subgraph Raw [" 🌊 Raw LLM Stream (Unconstrained Minjiang River) "]
+        S[Infinite Kinetic Energy / Hallucination Risk / Context Rot]
+    end
+
+    subgraph Fishmouth [" 1. Fishmouth (鱼嘴): Impedance Routing "]
+        S --> FM{Task Impedance Classifier}
+        FM -->|Low Impedance / Heavy Compute| ZCode[ZCode: Free High-Flow Stream]
+        FM -->|High Impedance / Critical Strategy| Hermes[Hermes / Sol High: Deep Logic]
+    end
+
+    subgraph Baopingkou [" 2. Baopingkou (宝瓶口): Flow Bottleneck "]
+        ZCode --> BPK[Context Choke Point]
+        Hermes --> BPK
+        BPK -->|Normalize Turbulent Output| LFlow["Laminar Flow Contract: {status, artifact, summary}"]
+    end
+
+    subgraph Feishayan [" 3. Feishayan (飞沙堰): Desilting & Acceptance "]
+        LFlow --> FSY{Reality Anchor Validation}
+        FSY -->|Hallucination / Failed Exit| Spill[Automatic Desilting: Reject & Retry]
+        FSY -->|Exit 0 + Non-empty Artifact| Irrigated[🎋 Irrigated Stable Delivery]
+    end
+
+    classDef stream fill:#003566,stroke:#0077b6,stroke-width:2px,color:#fff;
+    classDef pass fill:#1b4332,stroke:#40916c,stroke-width:2px,color:#fff;
+    classDef fail fill:#590d22,stroke:#a4133c,stroke-width:2px,color:#fff;
+    classDef comp fill:#14213d,stroke:#fca311,stroke-width:1px,color:#fff;
+    class S stream;
+    class Irrigated pass;
+    class Spill fail;
+    class FM,BPK,FSY,ZCode,Hermes,LFlow comp;
+```
+
 ```
                   [Raw LLM Kinetic Energy: Unconstrained Stream]
                                         │
